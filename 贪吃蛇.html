@@ -3,647 +3,391 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>🐍 贪吃蛇</title>
+<title>🐍 贪吃蛇大乱斗</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-  body {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    overflow: hidden;
-  }
-
-  /* 星星背景粒子 */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      radial-gradient(2px 2px at 20px 30px, #eee, transparent),
-      radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,.8), transparent),
-      radial-gradient(2px 2px at 50px 160px, #ddd, transparent),
-      radial-gradient(2px 2px at 90px 40px, rgba(255,255,255,.6), transparent),
-      radial-gradient(2px 2px at 130px 80px, #fff, transparent),
-      radial-gradient(2px 2px at 160px 30px, rgba(255,255,255,.7), transparent),
-      radial-gradient(1px 1px at 300px 200px, #fff, transparent),
-      radial-gradient(1px 1px at 400px 100px, #ccc, transparent),
-      radial-gradient(1px 1px at 500px 300px, #fff, transparent),
-      radial-gradient(1px 1px at 600px 150px, #ddd, transparent),
-      radial-gradient(1px 1px at 700px 400px, #fff, transparent),
-      radial-gradient(1px 1px at 800px 250px, #eee, transparent);
-    background-size: 200px 200px;
-    background-repeat: repeat;
-    animation: twinkle 4s ease-in-out infinite alternate;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  @keyframes twinkle {
-    0% { opacity: .4; }
-    100% { opacity: .9; }
-  }
-
-  .game-wrapper {
-    position: relative;
-    z-index: 1;
-    background: rgba(255,255,255,.04);
-    backdrop-filter: blur(12px);
-    border-radius: 32px;
-    padding: 30px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
-    border: 1px solid rgba(255,255,255,.06);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-  }
-
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 0 6px;
-  }
-
-  .title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 1px;
-    text-shadow: 0 0 20px rgba(100,200,255,.3);
-  }
-  .title span { color: #6ee7b7; }
-
-  .scoreboard {
-    display: flex;
-    gap: 20px;
-    font-size: 15px;
-    color: rgba(255,255,255,.7);
-  }
-  .scoreboard .num {
-    color: #fff;
-    font-weight: 700;
-    font-size: 18px;
-    min-width: 28px;
-    display: inline-block;
-    text-align: center;
-  }
-  .scoreboard .high { color: #fcd34d; }
-
-  .canvas-wrap {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 30px rgba(100,200,255,.08);
-    background: #111827;
-    line-height: 0;
-  }
-
-  canvas {
-    display: block;
-    width: 500px;
-    height: 500px;
-    background: #111827;
-    touch-action: none;
-  }
-
-  /* 覆盖层 - 开始 / 结束 */
-  .overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background: rgba(0,0,0,.65);
-    backdrop-filter: blur(4px);
-    transition: opacity .35s ease;
-    z-index: 10;
-  }
-  .overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-  .overlay h2 {
-    font-size: 36px;
-    color: #fff;
-    margin-bottom: 8px;
-    text-shadow: 0 0 30px rgba(100,200,255,.3);
-  }
-  .overlay p {
-    color: rgba(255,255,255,.6);
-    font-size: 15px;
-    margin-bottom: 22px;
-  }
-  .overlay .final-score {
-    font-size: 48px;
-    font-weight: 800;
-    color: #6ee7b7;
-    margin-bottom: 4px;
-  }
-  .overlay .final-label {
-    font-size: 14px;
-    color: rgba(255,255,255,.4);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-
-  .btn {
-    padding: 12px 40px;
-    border: none;
-    border-radius: 50px;
-    font-size: 17px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .25s ease;
-    letter-spacing: .5px;
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, #6ee7b7, #3b82f6);
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(110,231,183,.3);
-  }
-  .btn-primary:hover {
-    transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 8px 30px rgba(110,231,183,.4);
-  }
-  .btn-primary:active { transform: scale(.96); }
-
-  .btn-icon {
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.08);
-    color: rgba(255,255,255,.6);
-    width: 40px; height: 40px;
-    border-radius: 12px;
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all .2s ease;
-  }
-  .btn-icon:hover {
-    background: rgba(255,255,255,.1);
-    color: #fff;
-  }
-
-  .controls-hint {
-    display: flex;
-    gap: 6px;
-    color: rgba(255,255,255,.25);
-    font-size: 13px;
-    align-items: center;
-  }
-  .controls-hint kbd {
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 6px;
-    padding: 2px 9px;
-    font-size: 12px;
-    color: rgba(255,255,255,.4);
-    font-family: inherit;
-  }
-
-  /* 移动端方向键 */
-  .dpad {
-    display: none;
-    grid-template-areas: 
-      ". up ."
-      "left down right";
-    grid-template-columns: repeat(3, 64px);
-    grid-template-rows: repeat(2, 64px);
-    gap: 6px;
-    margin-top: 4px;
-  }
-  .dpad-btn {
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 16px;
-    color: rgba(255,255,255,.5);
-    font-size: 26px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-    transition: background .15s;
-  }
-  .dpad-btn:active { background: rgba(255,255,255,.14); }
-  .dpad-up    { grid-area: up; }
-  .dpad-down  { grid-area: down; }
-  .dpad-left  { grid-area: left; }
-  .dpad-right { grid-area: right; }
-
-  @media (max-width: 560px) {
-    .game-wrapper { padding: 16px; gap: 12px; border-radius: 20px; }
-    canvas { width: 100%; height: auto; aspect-ratio: 1/1; }
-    .title { font-size: 17px; }
-    .scoreboard { font-size: 13px; gap: 12px; }
-    .scoreboard .num { font-size: 15px; }
-    .dpad { display: grid; }
-    .overlay h2 { font-size: 26px; }
-    .overlay .final-score { font-size: 36px; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);min-height:100vh;display:flex;justify-content:center;align-items:center;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;overflow-x:hidden;padding:16px}
+  body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(2px 2px at 20px 30px,#eee,transparent),radial-gradient(2px 2px at 40px 70px,rgba(255,255,255,.8),transparent),radial-gradient(2px 2px at 50px 160px,#ddd,transparent),radial-gradient(2px 2px at 90px 40px,rgba(255,255,255,.6),transparent),radial-gradient(2px 2px at 130px 80px,#fff,transparent),radial-gradient(2px 2px at 160px 30px,rgba(255,255,255,.7),transparent),radial-gradient(1px 1px at 300px 200px,#fff,transparent),radial-gradient(1px 1px at 400px 100px,#ccc,transparent),radial-gradient(1px 1px at 500px 300px,#fff,transparent),radial-gradient(1px 1px at 600px 150px,#ddd,transparent),radial-gradient(1px 1px at 700px 400px,#fff,transparent),radial-gradient(1px 1px at 800px 250px,#eee,transparent);background-size:200px 200px;background-repeat:repeat;animation:twinkle 4s ease-in-out infinite alternate;pointer-events:none;z-index:0}
+  @keyframes twinkle{0%{opacity:.4}100%{opacity:.9}}
+  .game-wrapper{position:relative;z-index:1;background:rgba(255,255,255,.04);backdrop-filter:blur(12px);border-radius:32px;padding:24px 28px;box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;align-items:center;gap:14px;max-width:620px}
+  .header{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0 4px}
+  .title{font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;text-shadow:0 0 20px rgba(100,200,255,.3)}
+  .title span{color:#6ee7b7}
+  .scoreboard{display:flex;gap:16px;font-size:14px;color:rgba(255,255,255,.7)}
+  .scoreboard .num{color:#fff;font-weight:700;font-size:17px;min-width:26px;display:inline-block;text-align:center}
+  .leaderboard{width:100%;display:flex;flex-direction:column;gap:4px;padding:0 4px}
+  .leaderboard-title{font-size:12px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+  .lb-row{display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:10px;font-size:13px;color:rgba(255,255,255,.6);background:rgba(255,255,255,.02);transition:background .2s}
+  .lb-row.is-player{background:rgba(110,231,183,.08);color:#fff}
+  .lb-row.dead{opacity:.35}
+  .lb-rank{font-weight:700;font-size:12px;min-width:22px;color:rgba(255,255,255,.25)}
+  .lb-rank.gold{color:#fcd34d}
+  .lb-rank.silver{color:#cbd5e1}
+  .lb-rank.bronze{color:#d4a574}
+  .lb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+  .lb-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-name .you-tag{font-size:10px;background:rgba(110,231,183,.2);color:#6ee7b7;padding:0 6px;border-radius:4px;margin-left:4px;font-weight:600}
+  .lb-score{font-weight:700;font-size:14px;color:rgba(255,255,255,.8)}
+  .lb-status{font-size:10px;padding:1px 8px;border-radius:6px;background:rgba(110,231,183,.1);color:#6ee7b7}
+  .lb-status.dead{background:rgba(239,68,68,.12);color:#f87171}
+  .canvas-wrap{position:relative;border-radius:16px;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.4),0 0 30px rgba(100,200,255,.08);background:#111827;line-height:0;width:100%}
+  canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;background:#111827;touch-action:none}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);transition:opacity .35s ease;z-index:10;border-radius:16px}
+  .overlay.hidden{opacity:0;pointer-events:none}
+  .overlay h2{font-size:34px;color:#fff;margin-bottom:4px;text-shadow:0 0 30px rgba(100,200,255,.3)}
+  .overlay .sub{color:rgba(255,255,255,.5);font-size:14px;margin-bottom:18px}
+  .overlay .final-score{font-size:44px;font-weight:800;color:#6ee7b7;margin-bottom:2px}
+  .overlay .final-label{font-size:13px;color:rgba(255,255,255,.35);letter-spacing:2px;margin-bottom:14px}
+  .overlay .result-list{display:flex;flex-direction:column;gap:3px;margin-bottom:18px;max-height:140px;overflow-y:auto;width:80%;padding:0 8px}
+  .overlay .result-list .rr{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-radius:6px;font-size:13px;color:rgba(255,255,255,.6)}
+  .overlay .result-list .rr.is-player{color:#fff;background:rgba(110,231,183,.08)}
+  .overlay .result-list .rr .rr-name{display:flex;align-items:center;gap:6px}
+  .overlay .result-list .rr .rr-score{font-weight:700;color:rgba(255,255,255,.8)}
+  .rr-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .rr-rank{font-weight:700;font-size:11px;min-width:18px;color:rgba(255,255,255,.3)}
+  .btn{padding:11px 36px;border:none;border-radius:50px;font-size:16px;font-weight:600;cursor:pointer;transition:all .25s ease;letter-spacing:.5px}
+  .btn-primary{background:linear-gradient(135deg,#6ee7b7,#3b82f6);color:#fff;box-shadow:0 4px 20px rgba(110,231,183,.3)}
+  .btn-primary:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 8px 30px rgba(110,231,183,.4)}
+  .btn-primary:active{transform:scale(.96)}
+  .controls-hint{display:flex;gap:6px;color:rgba(255,255,255,.25);font-size:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .controls-hint kbd{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:2px 8px;font-size:11px;color:rgba(255,255,255,.4);font-family:inherit}
+  .dpad{display:none;grid-template-areas:". up ." "left down right";grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,60px);gap:5px;margin-top:2px}
+  .dpad-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;color:rgba(255,255,255,.5);font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:background .15s}
+  .dpad-btn:active{background:rgba(255,255,255,.14)}
+  .dpad-up{grid-area:up}
+  .dpad-down{grid-area:down}
+  .dpad-left{grid-area:left}
+  .dpad-right{grid-area:right}
+  @media(max-width:540px){
+    body{padding:8px;align-items:flex-start}
+    .game-wrapper{padding:12px;gap:10px;border-radius:18px}
+    .title{font-size:16px}
+    .scoreboard{font-size:12px;gap:10px}
+    .scoreboard .num{font-size:14px}
+    .dpad{display:grid}
+    .overlay h2{font-size:24px}
+    .overlay .final-score{font-size:32px}
+    .lb-row{font-size:11px;padding:3px 8px}
+    .controls-hint{font-size:10px}
   }
 </style>
 </head>
 <body>
-
 <div class="game-wrapper">
   <div class="header">
-    <div class="title">🐍 <span>贪吃蛇</span></div>
+    <div class="title">🐍 <span>大乱斗</span></div>
     <div class="scoreboard">
-      <span>🍎 <span class="num" id="score">0</span></span>
-      <span>🏆 <span class="num high" id="highScore">0</span></span>
+      <span>🍎 <span class="num" id="foodCount">0</span></span>
+      <span>🐍 <span class="num" id="aliveCount">0</span></span>
     </div>
   </div>
-
+  <div class="leaderboard" id="leaderboard">
+    <div class="leaderboard-title">🏆 排行榜</div>
+  </div>
   <div class="canvas-wrap">
     <canvas id="gameCanvas" width="500" height="500"></canvas>
-
-    <!-- 开始界面 -->
     <div class="overlay" id="startOverlay">
-      <h2>🐍 贪吃蛇</h2>
-      <p>吃食物，长身体，别撞墙也别咬自己</p>
-      <button class="btn btn-primary" id="startBtn">开始游戏</button>
+      <h2>🐍 大乱斗</h2>
+      <p class="sub">和 AI 蛇同场竞技，活到最后！</p>
+      <button class="btn btn-primary" id="startBtn">开始乱斗</button>
     </div>
-
-    <!-- 结束界面 -->
     <div class="overlay hidden" id="gameOverOverlay">
-      <h2>💀 游戏结束</h2>
+      <h2>💀 你被淘汰了</h2>
       <div class="final-score" id="finalScore">0</div>
-      <div class="final-label">得分</div>
-      <p id="newHighMsg" style="display:none;color:#fcd34d;font-weight:600;margin-bottom:8px;">🎉 新纪录！</p>
+      <div class="final-label">最终得分</div>
+      <div class="result-list" id="resultList"></div>
       <button class="btn btn-primary" id="restartBtn">再来一局</button>
     </div>
   </div>
-
   <div class="controls-hint">
-    <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>
+    <kbd>&#8593;</kbd><kbd>&#8595;</kbd><kbd>&#8592;</kbd><kbd>&#8594;</kbd>
     <span style="margin:0 4px;">或</span>
     <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
     <span style="margin-left:6px;">控制方向</span>
-    <span style="margin-left:12px;opacity:.5;">·</span>
-    <span style="margin-left:12px;"><kbd>Space</kbd> 暂停</span>
+    <span style="margin-left:8px;opacity:.5;">&#183;</span>
+    <span style="margin-left:8px;"><kbd>Space</kbd> 暂停</span>
   </div>
-
-  <!-- 触屏方向键 -->
   <div class="dpad">
-    <button class="dpad-btn dpad-up"    data-dir="up">    ▲</button>
-    <button class="dpad-btn dpad-left"  data-dir="left">  ◀</button>
-    <button class="dpad-btn dpad-down"  data-dir="down">  ▼</button>
-    <button class="dpad-btn dpad-right" data-dir="right"> ▶</button>
+    <button class="dpad-btn dpad-up" data-dir="up">&#9650;</button>
+    <button class="dpad-btn dpad-left" data-dir="left">&#9664;</button>
+    <button class="dpad-btn dpad-down" data-dir="down">&#9660;</button>
+    <button class="dpad-btn dpad-right" data-dir="right">&#9654;</button>
   </div>
 </div>
-
 <script>
-// ===================== 游戏核心 =====================
-const canvas  = document.getElementById('gameCanvas');
-const ctx     = canvas.getContext('2d');
-const W = 500, CELL = 20;
-const COLS = W / CELL, ROWS = W / CELL;
+var CC=20,WW=500,CO=WW/CC,RO=WW/CC,CA=document.getElementById('gameCanvas'),CX=CA.getContext('2d');
+var SC=[
+  {n:'\u4f60',hc:'#34d399',bc:'#6ee7b7',ip:true},
+  {n:'\u5c0f\u7ea2',hc:'#ef4444',bc:'#f87171',ip:false},
+  {n:'\u5c0f\u84dd',hc:'#3b82f6',bc:'#60a5fa',ip:false},
+  {n:'\u5c0f\u9ec4',hc:'#f59e0b',bc:'#fbbf24',ip:false},
+  {n:'\u5c0f\u7d2b',hc:'#a855f7',bc:'#c084fc',ip:false}
+];
+var SP=[
+  {c:[{x:4,y:12},{x:3,y:12},{x:2,y:12}],d:'right'},
+  {c:[{x:20,y:4},{x:21,y:4},{x:22,y:4}],d:'left'},
+  {c:[{x:20,y:20},{x:21,y:20},{x:22,y:20}],d:'left'},
+  {c:[{x:12,y:4},{x:11,y:4},{x:10,y:4}],d:'down'},
+  {c:[{x:12,y:20},{x:11,y:20},{x:10,y:20}],d:'up'}
+];
 
-// DOM 元素
-const scoreEl      = document.getElementById('score');
-const highScoreEl  = document.getElementById('highScore');
-const startOverlay = document.getElementById('startOverlay');
-const overOverlay  = document.getElementById('gameOverOverlay');
-const finalScoreEl = document.getElementById('finalScore');
-const newHighMsg   = document.getElementById('newHighMsg');
-const startBtn     = document.getElementById('startBtn');
-const restartBtn   = document.getElementById('restartBtn');
-
-// ===================== 音效（Web Audio） =====================
-let audioCtx = null;
-function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function Snake(cfg,sp){
+  this.n=cfg.n;this.hc=cfg.hc;this.bc=cfg.bc;this.ip=cfg.ip;
+  this.al=true;this.sc=0;
+  this.b=sp.c.map(function(p){return{x:p.x,y:p.y}});
+  this.d=sp.d;this.nd=sp.d;
 }
-function playTone(freq, duration, type = 'square', vol = .12) {
-  try {
-    initAudio();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
-  } catch(_) {}
-}
-function sfxEat() { playTone(587, .1, 'square', .10); setTimeout(() => playTone(784, .1, 'square', .08), 60); }
-function sfxDie() { playTone(200, .3, 'sawtooth', .12); setTimeout(() => playTone(120, .4, 'sawtooth', .10), 150); }
-function sfxMove() { playTone(440, .04, 'sine', .04); }
-
-// ===================== 游戏状态 =====================
-let snake, food, direction, nextDirection, score, highScore;
-let running = false, paused = false;
-let gameLoopId = null;
-let speed = 130; // 毫秒/帧
-
-// 读取最高分
-highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
-highScoreEl.textContent = highScore;
-
-function initGame() {
-  snake = [
-    { x: 5, y: 7 },
-    { x: 4, y: 7 },
-    { x: 3, y: 7 },
-  ];
-  direction = 'right';
-  nextDirection = 'right';
-  score = 0;
-  scoreEl.textContent = '0';
-  spawnFood();
-  paused = false;
-}
-
-function spawnFood() {
-  let pos;
-  do {
-    pos = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
-  } while (snake.some(s => s.x === pos.x && s.y === pos.y));
-  food = pos;
-}
-
-// ===================== 游戏循环 =====================
-function gameTick() {
-  if (!running || paused) return;
-  direction = nextDirection;
-  const head = { ...snake[0] };
-  
-  switch (direction) {
-    case 'up':    head.y--; break;
-    case 'down':  head.y++; break;
-    case 'left':  head.x--; break;
-    case 'right': head.x++; break;
+Snake.prototype.hd=function(){return this.b[0]};
+Snake.prototype.sd=function(d){
+  var o={up:'down',down:'up',left:'right',right:'left'};
+  if(d!==o[this.d])this.nd=d;
+};
+Snake.prototype.ai=function(){
+  if(this.ip||!this.al)return;
+  var t=null,m=1/0;
+  for(var i=0;i<FS.length;i++){
+    var f=FS[i],dd=Math.abs(f.x-this.hd().x)+Math.abs(f.y-this.hd().y);
+    if(dd<m){m=dd;t=f;}
   }
-
-  // 撞墙？
-  if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-    gameOver(); return;
+  if(!t)return;
+  var dx=t.x-this.hd().x,dy=t.y-this.hd().y,pr=[];
+  if(Math.abs(dx)>=Math.abs(dy)){
+    pr.push(dx>0?'right':'left',dy>0?'down':'up',dy>0?'up':'down',dx>0?'left':'right');
+  }else{
+    pr.push(dy>0?'down':'up',dx>0?'right':'left',dx>0?'left':'right',dy>0?'up':'down');
   }
-  // 撞自己？
-  if (snake.some(s => s.x === head.x && s.y === head.y)) {
-    gameOver(); return;
-  }
-
-  snake.unshift(head);
-
-  if (head.x === food.x && head.y === food.y) {
-    score++;
-    scoreEl.textContent = score;
-    sfxEat();
-    spawnFood();
-    // 每得5分加速一次，但最快到60ms
-    speed = Math.max(60, 130 - Math.floor(score / 3) * 5);
-    clearInterval(gameLoopId);
-    gameLoopId = setInterval(gameTick, speed);
-  } else {
-    snake.pop();
-  }
-
-  draw();
-}
-
-function startGame() {
-  if (gameLoopId) { clearInterval(gameLoopId); gameLoopId = null; }
-  initGame();
-  speed = 130;
-  running = true;
-  startOverlay.classList.add('hidden');
-  overOverlay.classList.add('hidden');
-  draw();
-  gameLoopId = setInterval(gameTick, speed);
-}
-
-function gameOver() {
-  running = false;
-  if (gameLoopId) { clearInterval(gameLoopId); gameLoopId = null; }
-  sfxDie();
-
-  let isNewHigh = false;
-  if (score > highScore) {
-    highScore = score;
-    localStorage.setItem('snakeHighScore', highScore);
-    highScoreEl.textContent = highScore;
-    newHighMsg.style.display = 'block';
-    isNewHigh = true;
-  } else {
-    newHighMsg.style.display = 'none';
-  }
-
-  finalScoreEl.textContent = score;
-  overOverlay.classList.remove('hidden');
-}
-
-// ===================== 绘制 =====================
-function draw() {
-  ctx.clearRect(0, 0, W, W);
-
-  // 网格（极淡）
-  ctx.strokeStyle = 'rgba(255,255,255,.02)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= COLS; i++) {
-    ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,W); ctx.stroke();
-  }
-  for (let i = 0; i <= ROWS; i++) {
-    ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(W,i*CELL); ctx.stroke();
-  }
-
-  // 食物
-  const fx = food.x * CELL + CELL/2, fy = food.y * CELL + CELL/2;
-  ctx.save();
-  ctx.shadowColor = '#6ee7b7';
-  ctx.shadowBlur = 16;
-  ctx.beginPath();
-  ctx.arc(fx, fy, CELL/2 - 2, 0, Math.PI*2);
-  ctx.fillStyle = '#ef4444';
-  ctx.fill();
-  // 高光
-  ctx.shadowBlur = 0;
-  ctx.beginPath();
-  ctx.arc(fx-3, fy-3, 4, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(255,255,255,.35)';
-  ctx.fill();
-  ctx.restore();
-
-  // 蛇
-  snake.forEach((seg, i) => {
-    const x = seg.x * CELL, y = seg.y * CELL;
-    const pad = 1, r = 4;
-    const t = i / snake.length; // 0 = 头
-    
-    // 蛇身渐变色
-    const rColor = Math.round(30 + t * 60);
-    const gColor = Math.round(200 - t * 60);
-    const bColor = Math.round(130 - t * 50);
-    
-    ctx.save();
-    ctx.shadowColor = `rgba(110,231,183,${.2 - t*.15})`;
-    ctx.shadowBlur = i === 0 ? 18 : 8;
-
-    if (i === 0) {
-      // 蛇头 - 圆角矩形
-      ctx.fillStyle = '#6ee7b7';
-      roundRect(x+pad, y+pad, CELL-pad*2, CELL-pad*2, r+2);
-      ctx.fill();
-
-      // 眼睛
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#fff';
-      let ex1, ey1, ex2, ey2;
-      const eyeOff = 5, eyeR = 3;
-      switch (direction) {
-        case 'right': ex1 = x+13; ey1 = y+5;  ex2 = x+13; ey2 = y+13; break;
-        case 'left':  ex1 = x+5;  ey1 = y+5;  ex2 = x+5;  ey2 = y+13; break;
-        case 'up':    ex1 = x+5;  ey1 = y+5;  ex2 = x+13; ey2 = y+5;  break;
-        case 'down':  ex1 = x+5;  ey1 = y+13; ex2 = x+13; ey2 = y+13; break;
-        default:      ex1 = x+13; ey1 = y+5;  ex2 = x+13; ey2 = y+13;
-      }
-      ctx.beginPath(); ctx.arc(ex1, ey1, eyeR, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(ex2, ey2, eyeR, 0, Math.PI*2); ctx.fill();
-      // 瞳孔
-      ctx.fillStyle = '#111827';
-      ctx.beginPath(); ctx.arc(ex1, ey1, 1.5, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(ex2, ey2, 1.5, 0, Math.PI*2); ctx.fill();
-    } else {
-      // 蛇身 - 圆角矩形
-      ctx.fillStyle = `rgb(${rColor},${gColor},${bColor})`;
-      roundRect(x+pad, y+pad, CELL-pad*2, CELL-pad*2, r);
-      ctx.fill();
-    }
-    ctx.restore();
-  });
-}
-
-function roundRect(x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.lineTo(x+w-r, y);
-  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-  ctx.lineTo(x+w, y+h-r);
-  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  ctx.lineTo(x+r, y+h);
-  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-  ctx.lineTo(x, y+r);
-  ctx.quadraticCurveTo(x, y, x+r, y);
-  ctx.closePath();
-}
-
-// ===================== 输入控制 =====================
-function setDirection(dir) {
-  const opposites = { up: 'down', down: 'up', left: 'right', right: 'left' };
-  if (dir !== opposites[direction]) {
-    nextDirection = dir;
-  }
-}
-
-document.addEventListener('keydown', e => {
-  if (!running && e.code !== 'Space') return;
-
-  const keyMap = {
-    'ArrowUp': 'up', 'ArrowDown': 'down', 'ArrowLeft': 'left', 'ArrowRight': 'right',
-    'w': 'up', 'W': 'up', 's': 'down', 'S': 'down',
-    'a': 'left', 'A': 'left', 'd': 'right', 'D': 'right',
-  };
-
-  if (e.code === 'Space') {
-    e.preventDefault();
-    if (!running) return;
-    paused = !paused;
-    if (!paused) draw();
-    return;
-  }
-
-  const dir = keyMap[e.key];
-  if (dir) {
-    e.preventDefault();
-    setDirection(dir);
-  }
-});
-
-// 触屏方向键
-document.querySelectorAll('.dpad-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (!running) return;
-    setDirection(btn.dataset.dir);
-  });
-  btn.addEventListener('touchstart', e => {
-    e.preventDefault();
-    if (!running) return;
-    setDirection(btn.dataset.dir);
-  });
-});
-
-// ===================== 滑动控制（触屏） =====================
-let touchStartX = 0, touchStartY = 0;
-canvas.addEventListener('touchstart', e => {
-  const t = e.touches[0];
-  touchStartX = t.clientX;
-  touchStartY = t.clientY;
-}, { passive: true });
-
-canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-
-canvas.addEventListener('touchend', e => {
-  if (!running) return;
-  if (!touchStartX || !touchStartY) return;
-  const t = e.changedTouches[0];
-  const dx = t.clientX - touchStartX;
-  const dy = t.clientY - touchStartY;
-  const absDx = Math.abs(dx), absDy = Math.abs(dy);
-
-  if (Math.max(absDx, absDy) < 20) return; // 太短忽略
-
-  if (absDx > absDy) {
-    setDirection(dx > 0 ? 'right' : 'left');
-  } else {
-    setDirection(dy > 0 ? 'down' : 'up');
-  }
-
-  touchStartX = 0; touchStartY = 0;
-}, { passive: true });
-
-// ===================== 暂停指示 =====================
-// 在暂停时显示文字
-const origTick = gameTick;
-
-// 用绘制覆盖来显示暂停状态
-const origDraw = draw;
-draw = function() {
-  origDraw.call(this);
-  if (paused && running) {
-    ctx.fillStyle = 'rgba(0,0,0,.5)';
-    ctx.fillRect(0, 0, W, W);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 36px "Segoe UI","PingFang SC",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,.5)';
-    ctx.shadowBlur = 10;
-    ctx.fillText('⏸ 暂停中', W/2, W/2);
-    ctx.shadowBlur = 0;
+  for(var i=0;i<pr.length;i++){
+    var n=this._nx(pr[i]);
+    if(this._sf(n)){this.nd=pr[i];return;}
   }
 };
+Snake.prototype._nx=function(d){
+  var h=this.hd();
+  if(d==='up')return{x:h.x,y:h.y-1};
+  if(d==='down')return{x:h.x,y:h.y+1};
+  if(d==='left')return{x:h.x-1,y:h.y};
+  if(d==='right')return{x:h.x+1,y:h.y};
+  return{x:h.x,y:h.y};
+};
+Snake.prototype._sf=function(p){
+  if(p.x<0||p.x>=CO||p.y<0||p.y>=RO)return false;
+  for(var i=0;i<SK.length;i++){
+    var s=SK[i];if(!s.al)continue;
+    for(var j=0;j<s.b.length-1;j++){
+      var g=s.b[j];
+      if(g.x===p.x&&g.y===p.y)return false;
+    }
+  }
+  return true;
+};
 
-// ===================== 启动 =====================
-startBtn.addEventListener('click', () => { initAudio(); startGame(); });
-restartBtn.addEventListener('click', () => { initAudio(); startGame(); });
+var SK=[],FS=[],RN=false,PA=false,GL=null,SPD=140,FC=0;
+function ig(){
+  SK=[];FS=[];
+  for(var i=0;i<SC.length;i++)SK.push(new Snake(SC[i],SP[i]));
+  for(var i=0;i<5;i++)sf();
+  PA=false;FC=0;SPD=140;ul();
+}
+function sf(){
+  var p;var a=0;
+  do{p={x:Math.floor(Math.random()*CO),y:Math.floor(Math.random()*RO)};a++}
+  while((os(p)||FS.some(function(f){return f.x===p.x&&f.y===p.y}))&&a<200);
+  if(a<200)FS.push(p);
+}
+function os(p){
+  for(var i=0;i<SK.length;i++){
+    var s=SK[i];if(!s.al)continue;
+    for(var j=0;j<s.b.length;j++){var g=s.b[j];if(g.x===p.x&&g.y===p.y)return true;}
+  }
+  return false;
+}
+function ul(){
+  var sr=[].concat(SK).sort(function(a,b){
+    if(a.al!==b.al)return a.al?-1:1;
+    return b.sc-a.sc;
+  });
+  var h='<div class="leaderboard-title">&#127942; 排行榜</div>';
+  for(var i=0;i<sr.length;i++){
+    var s=sr[i],r=i+1,rc='';
+    if(r===1&&s.al)rc='gold';else if(r===2&&s.al)rc='silver';else if(r===3&&s.al)rc='bronze';
+    h+='<div class="lb-row'+(s.ip?' is-player':'')+(!s.al?' dead':'')+'"><span class="lb-rank '+rc+'">'+(s.al?r:'&#128128;')+'</span><span class="lb-dot" style="background:'+s.hc+';color:'+s.hc+'"></span><span class="lb-name">'+s.n+(s.ip?'<span class="you-tag">你</span>':'')+'</span><span class="lb-score">'+s.sc+'</span><span class="lb-status'+(!s.al?' dead':'')+'">'+(s.al?'存活':'淘汰')+'</span></div>';
+  }
+  document.getElementById('leaderboard').innerHTML=h;
+}
 
-// 初始绘制
-initGame();
-draw();
+function gt(){
+  if(!RN||PA)return;FC++;
+  for(var i=0;i<SK.length;i++)if(SK[i].al)SK[i].ai();
+  for(var i=0;i<SK.length;i++){
+    var s=SK[i];if(!s.al)continue;
+    s.d=s.nd;var h={x:s.hd().x,y:s.hd().y};
+    if(s.d==='up')h.y--;else if(s.d==='down')h.y++;else if(s.d==='left')h.x--;else if(s.d==='right')h.x++;
+    s.b.unshift(h);s.b.pop();
+  }
+  var dd={};
+  for(var i=0;i<SK.length;i++){
+    var s=SK[i];if(!s.al||dd[i])continue;var ha=s.hd();
+    if(ha.x<0||ha.x>=CO||ha.y<0||ha.y>=RO)dd[i]=true;
+  }
+  for(var i=0;i<SK.length;i++){
+    var a=SK[i];if(!a.al||dd[i])continue;var ha=a.hd();
+    for(var j=0;j<SK.length;j++){
+      var b=SK[j];if(!b.al)continue;
+      for(var k=0;k<b.b.length;k++){
+        var g=b.b[k];
+        if(ha.x===g.x&&ha.y===g.y){
+          if(k===0&&a!==b){dd[i]=true;dd[j]=true;}
+          else if(k>0)dd[i]=true;
+        }
+      }
+    }
+  }
+  for(var id in dd){
+    var s=SK[id];if(!s.al)continue;s.al=false;
+    for(var i=0;i<s.b.length;i+=3){
+      var g=s.b[i];
+      if(!os(g)&&!FS.some(function(f){return f.x===g.x&&f.y===g.y}))FS.push({x:g.x,y:g.y});
+    }
+    if(s.ip){sd();go();return;}
+  }
+  for(var i=0;i<SK.length;i++){
+    var s=SK[i];if(!s.al)continue;var h=s.hd();var et=[];
+    for(var j=0;j<FS.length;j++){
+      if(FS[j].x===h.x&&FS[j].y===h.y){
+        var tl=s.b[s.b.length-1];s.b.push({x:tl.x,y:tl.y});s.sc++;et.push(j);
+      }
+    }
+    for(var j=et.length-1;j>=0;j--)FS.splice(et[j],1);
+  }
+  var tg=3+Math.floor(SK.filter(function(s){return s.al}).length*1.5);
+  while(FS.length<tg)sf();
+  ul();
+  document.getElementById('foodCount').textContent=FS.length;
+  document.getElementById('aliveCount').textContent=SK.filter(function(s){return s.al}).length;
+  dw();
+}
+
+var AC=null;
+function ia(){if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();}
+function pt(f,d,t,v){
+  try{ia();var o=AC.createOscillator(),g=AC.createGain();o.type=t||'square';o.frequency.value=f;g.gain.setValueAtTime(v||.1,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d);}catch(e){}
+}
+function se(){pt(587,.08,'square',.08);setTimeout(function(){pt(784,.08,'square',.06)},50);}
+function sd(){pt(200,.25,'sawtooth',.10);setTimeout(function(){pt(120,.35,'sawtooth',.08)},120);}
+function sk(){pt(880,.1,'sine',.08);setTimeout(function(){pt(1100,.12,'sine',.06)},80);}
+
+function sg(){
+  if(GL){clearInterval(GL);GL=null;}
+  ig();RN=true;
+  document.getElementById('startOverlay').classList.add('hidden');
+  document.getElementById('gameOverOverlay').classList.add('hidden');
+  dw();GL=setInterval(gt,SPD);
+}
+function go(){
+  RN=false;if(GL){clearInterval(GL);GL=null;}
+  var p=null;for(var i=0;i<SK.length;i++)if(SK[i].ip)p=SK[i];
+  document.getElementById('finalScore').textContent=p?p.sc:0;
+  var sr=[].concat(SK).sort(function(a,b){return b.sc-a.sc});
+  var el=document.getElementById('resultList');el.innerHTML='';
+  for(var i=0;i<sr.length;i++){
+    var s=sr[i];
+    var dot='<span class="rr-dot" style="background:'+s.bc+';color:'+s.hc+'"></span>';
+    var div=document.createElement('div');
+    div.className='rr'+(s.ip?' is-player':'');
+    div.innerHTML='<span class="rr-rank">'+(i+1)+'</span><span class="rr-name">'+dot+' '+s.n+(s.ip?' &#127942;':'')+'</span><span class="rr-score">'+s.sc+'</span>';
+    el.appendChild(div);
+  }
+  document.getElementById('gameOverOverlay').classList.remove('hidden');
+}
+
+function dw(){
+  CX.clearRect(0,0,WW,WW);
+  CX.strokeStyle='rgba(255,255,255,.02)';CX.lineWidth=1;
+  for(var i=0;i<=CO;i++){CX.beginPath();CX.moveTo(i*CC,0);CX.lineTo(i*CC,WW);CX.stroke();}
+  for(var i=0;i<=RO;i++){CX.beginPath();CX.moveTo(0,i*CC);CX.lineTo(WW,i*CC);CX.stroke();}
+  for(var i=0;i<FS.length;i++){
+    var f=FS[i],fx=f.x*CC+CC/2,fy=f.y*CC+CC/2;
+    CX.save();var p=12+4*Math.sin(FC*0.1+fx+fy);
+    CX.shadowColor='#ef4444';CX.shadowBlur=p;
+    CX.beginPath();CX.arc(fx,fy,CC/2-2,0,Math.PI*2);
+    CX.fillStyle='#ef4444';CX.fill();
+    CX.shadowBlur=0;CX.beginPath();CX.arc(fx-3,fy-3,3.5,0,Math.PI*2);
+    CX.fillStyle='rgba(255,255,255,.3)';CX.fill();CX.restore();
+  }
+  for(var i=0;i<SK.length;i++){
+    var s=SK[i];if(!s.al)continue;
+    for(var j=0;j<s.b.length;j++){
+      var g=s.b[j],x=g.x*CC,y=g.y*CC,pa=1,r=3.5,t=j/Math.max(s.b.length,1);
+      CX.save();CX.shadowColor=s.hc+'44';CX.shadowBlur=j===0?16:6;
+      if(j===0){
+        CX.fillStyle=s.hc;rr(x+pa,y+pa,CC-pa*2,CC-pa*2,r+1.5);CX.fill();
+        CX.shadowBlur=0;CX.fillStyle='#fff';
+        var ex1,ey1,ex2,ey2,dir=s.d;
+        if(dir==='right'){ex1=x+13;ey1=y+5;ex2=x+13;ey2=y+13;}
+        else if(dir==='left'){ex1=x+5;ey1=y+5;ex2=x+5;ey2=y+13;}
+        else if(dir==='up'){ex1=x+5;ey1=y+5;ex2=x+13;ey2=y+5;}
+        else if(dir==='down'){ex1=x+5;ey1=y+13;ex2=x+13;ey2=y+13;}
+        else{ex1=x+13;ey1=y+5;ex2=x+13;ey2=y+13;}
+        CX.beginPath();CX.arc(ex1,ey1,2.8,0,Math.PI*2);CX.fill();
+        CX.beginPath();CX.arc(ex2,ey2,2.8,0,Math.PI*2);CX.fill();
+        CX.fillStyle='#111827';var po=1;
+        CX.beginPath();CX.arc(ex1+(dir==='right'?po:dir==='left'?-po:0),ey1+(dir==='down'?po:dir==='up'?-po:0),1.3,0,Math.PI*2);CX.fill();
+        CX.beginPath();CX.arc(ex2+(dir==='right'?po:dir==='left'?-po:0),ey2+(dir==='down'?po:dir==='up'?-po:0),1.3,0,Math.PI*2);CX.fill();
+      }else{
+        CX.fillStyle=lc(s.hc,s.bc,t);
+        rr(x+pa,y+pa,CC-pa*2,CC-pa*2,r);CX.fill();
+      }
+      CX.restore();
+    }
+  }
+  if(PA&&RN){
+    CX.fillStyle='rgba(0,0,0,.5)';CX.fillRect(0,0,WW,WW);
+    CX.fillStyle='#fff';CX.font='bold 32px "Segoe UI","PingFang SC",sans-serif';
+    CX.textAlign='center';CX.textBaseline='middle';
+    CX.shadowColor='rgba(0,0,0,.5)';CX.shadowBlur=10;
+    CX.fillText('\u23f8 \u6682\u505c\u4e2d',WW/2,WW/2);CX.shadowBlur=0;
+  }
+}
+function lc(c1,c2,t){
+  var r1=parseInt(c1.slice(1,3),16),g1=parseInt(c1.slice(3,5),16),b1=parseInt(c1.slice(5,7),16);
+  var r2=parseInt(c2.slice(1,3),16),g2=parseInt(c2.slice(3,5),16),b2=parseInt(c2.slice(5,7),16);
+  return 'rgb('+Math.round(r1+(r2-r1)*t)+','+Math.round(g1+(g2-g1)*t)+','+Math.round(b1+(b2-b1)*t)+')';
+}
+function rr(x,y,w,h,r){
+  CX.beginPath();CX.moveTo(x+r,y);CX.lineTo(x+w-r,y);CX.quadraticCurveTo(x+w,y,x+w,y+r);
+  CX.lineTo(x+w,y+h-r);CX.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  CX.lineTo(x+r,y+h);CX.quadraticCurveTo(x,y+h,x,y+h-r);
+  CX.lineTo(x,y+r);CX.quadraticCurveTo(x,y,x+r,y);CX.closePath();
+}
+
+document.addEventListener('keydown',function(e){
+  if(!RN&&e.code!=='Space')return;
+  var m={'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right','w':'up','W':'up','s':'down','S':'down','a':'left','A':'left','d':'right','D':'right'};
+  if(e.code==='Space'){e.preventDefault();if(!RN)return;PA=!PA;if(!PA)dw();return;}
+  var dir=m[e.key];
+  if(dir){e.preventDefault();for(var i=0;i<SK.length;i++){var p=SK[i];if(p.ip&&p.al)p.sd(dir);}}
+});
+var dbs=document.querySelectorAll('.dpad-btn');
+for(var i=0;i<dbs.length;i++){
+  (function(btn){
+    btn.addEventListener('click',function(){if(!RN)return;for(var i=0;i<SK.length;i++){var p=SK[i];if(p.ip&&p.al)p.sd(btn.dataset.dir);}});
+    btn.addEventListener('touchstart',function(e){e.preventDefault();if(!RN)return;for(var i=0;i<SK.length;i++){var p=SK[i];if(p.ip&&p.al)p.sd(btn.dataset.dir);}});
+  })(dbs[i]);
+}
+var tx=0,ty=0;
+CA.addEventListener('touchstart',function(e){var t=e.touches[0];tx=t.clientX;ty=t.clientY;},{passive:true});
+CA.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});
+CA.addEventListener('touchend',function(e){
+  if(!RN||!tx||!ty)return;
+  var t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty,ax=Math.abs(dx),ay=Math.abs(dy);
+  if(Math.max(ax,ay)<20)return;
+  for(var i=0;i<SK.length;i++){var p=SK[i];if(p.ip&&p.al)p.sd(ax>ay?(dx>0?'right':'left'):(dy>0?'down':'up'));}
+  tx=0;ty=0;
+},{passive:true});
+
+document.getElementById('startBtn').addEventListener('click',function(){ia();sg();});
+document.getElementById('restartBtn').addEventListener('click',function(){ia();sg();});
+ig();dw();
 </script>
 </body>
 </html>
